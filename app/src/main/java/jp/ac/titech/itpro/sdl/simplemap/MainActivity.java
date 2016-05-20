@@ -14,6 +14,8 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
@@ -32,6 +34,10 @@ public class MainActivity extends AppCompatActivity implements
     private LocationRequest locationRequest;
     private boolean requestingLocationUpdate;
 
+    private enum UpdatingState {STOPPED, REQUESTING, STARTED}
+
+    private UpdatingState state = UpdatingState.STOPPED;
+
     private final static String[] PERMISSIONS = {
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.ACCESS_FINE_LOCATION
@@ -46,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements
         mapFragment.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(GoogleMap map) {
+                map.moveCamera(CameraUpdateFactory.zoomTo(15f));
                 googleMap = map;
             }
         });
@@ -73,17 +80,17 @@ public class MainActivity extends AppCompatActivity implements
     protected void onResume() {
         Log.d(TAG, "onResume");
         super.onResume();
-        if (googleApiClient.isConnected())
+        if (state != UpdatingState.STARTED && googleApiClient.isConnected())
             startLocationUpdate(true);
         else
-            requestingLocationUpdate = true;
+            state = UpdatingState.REQUESTING;
     }
 
     @Override
     protected void onPause() {
         Log.d(TAG, "onPause");
-        stopLocationUpdate();
-        requestingLocationUpdate = false;
+        if (state == UpdatingState.STARTED)
+            stopLocationUpdate();
         super.onPause();
     }
 
@@ -97,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         Log.d(TAG, "onConnected");
-        if (requestingLocationUpdate)
+        if (state == UpdatingState.REQUESTING)
             startLocationUpdate(true);
     }
 
@@ -113,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onLocationChanged(Location location) {
+        Log.d(TAG, "onLocationChanged: " + location);
         googleMap.animateCamera(CameraUpdateFactory
                 .newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
     }
@@ -129,6 +137,7 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void startLocationUpdate(boolean reqPermission) {
+        Log.d(TAG, "startLocationUpdate: " + reqPermission);
         for (String permission : PERMISSIONS) {
             if (ContextCompat.checkSelfPermission(this, permission)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -141,9 +150,12 @@ public class MainActivity extends AppCompatActivity implements
             }
         }
         LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
+        state = UpdatingState.STARTED;
     }
 
     private void stopLocationUpdate() {
+        Log.d(TAG, "stopLocationUpdate");
         LocationServices.FusedLocationApi.removeLocationUpdates(googleApiClient, this);
+        state = UpdatingState.STOPPED;
     }
 }
