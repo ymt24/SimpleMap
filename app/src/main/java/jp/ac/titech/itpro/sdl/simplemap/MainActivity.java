@@ -3,6 +3,7 @@ package jp.ac.titech.itpro.sdl.simplemap;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -10,8 +11,12 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
@@ -44,6 +49,8 @@ public class MainActivity extends AppCompatActivity implements
     };
     private final static int REQCODE_PERMISSIONS = 1111;
 
+    private Button goButton;//
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,11 +64,17 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
+
+        goButton = (Button) findViewById(R.id.go_button);//
+
+
+        // ATTENTION: This "addApi(AppIndex.API)"was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
         googleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API)
-                .build();
+                .addApi(AppIndex.API).build();
 
         locationRequest = new LocationRequest();
         locationRequest.setInterval(10000);
@@ -74,6 +87,19 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "onStart");
         super.onStart();
         googleApiClient.connect();
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "Main Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app URL is correct.
+                Uri.parse("android-app://jp.ac.titech.itpro.sdl.simplemap/http/host/path")
+        );
+        AppIndex.AppIndexApi.start(googleApiClient, viewAction);
     }
 
     @Override
@@ -99,6 +125,19 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "onStop");
         googleApiClient.disconnect();
         super.onStop();
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "Main Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app URL is correct.
+                Uri.parse("android-app://jp.ac.titech.itpro.sdl.simplemap/http/host/path")
+        );
+        AppIndex.AppIndexApi.end(googleApiClient, viewAction);
     }
 
     @Override
@@ -118,11 +157,23 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "onConnectionFailed");
     }
 
+
+    public void onClickGoButton(View v){
+        Log.d(TAG, "onClickGo");
+        if(last != null) {
+            googleMap.animateCamera(CameraUpdateFactory
+                    .newLatLng(new LatLng(last.getLatitude(), last.getLongitude())));
+        }
+    }
+    private Location last = null;
     @Override
     public void onLocationChanged(Location location) {
         Log.d(TAG, "onLocationChanged: " + location);
-        googleMap.animateCamera(CameraUpdateFactory
-                .newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
+        if(last == null) {
+            googleMap.animateCamera(CameraUpdateFactory
+                    .newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
+        }
+        last = location;
     }
 
     @Override
